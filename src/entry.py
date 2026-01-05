@@ -5,13 +5,13 @@ OpenAPI docs available at /docs
 """
 
 from workers import WorkerEntrypoint
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from datetime import datetime
 import uuid
 import asgi
 
 from core.models import AgentResponse
-from agents import EchoAgent
+from agents import AGENTS, get_agent, list_agents
 
 
 # =============================================================================
@@ -37,7 +37,7 @@ async def add_request_id(request: Request, call_next):
 async def root():
     return {
         "service": "agent-service",
-        "agents": ["echo"],
+        "agents": list_agents(),
         "docs": "/docs"
     }
 
@@ -48,14 +48,18 @@ async def health():
 
 
 # =============================================================================
-# Agents
+# Universal Agent Endpoint
 # =============================================================================
 
-@app.post("/agents/echo", response_model=AgentResponse)
-async def agent_echo(request: Request):
-    """Echo agent - returns whatever is sent."""
+@app.post("/agents/{agent_name}", response_model=AgentResponse)
+async def run_agent(agent_name: str, request: Request):
+    """Run any registered agent by name."""
+    try:
+        agent = get_agent(agent_name)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
     body = await request.json()
-    agent = EchoAgent()
     return await agent.run(body)
 
 

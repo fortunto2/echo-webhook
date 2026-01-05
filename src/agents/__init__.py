@@ -1,4 +1,8 @@
 from .base import BaseAgent
-from .echo import EchoAgent
+from .registry import AGENTS, register, get_agent, list_agents
 
-__all__ = ["BaseAgent", "EchoAgent"]
+# Import all agents to trigger registration
+from . import echo
+# from . import summarizer  # add new agents here
+
+__all__ = ["BaseAgent", "AGENTS", "register", "get_agent", "list_agents"]
