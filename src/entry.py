@@ -6,11 +6,12 @@ OpenAPI docs available at /docs
 
 from workers import WorkerEntrypoint
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from datetime import datetime
 import uuid
 import asgi
 
-from core.models import AgentResponse
 from agents import AGENTS, get_agent, list_agents
 
 
@@ -35,9 +36,16 @@ async def add_request_id(request: Request, call_next):
 
 @app.get("/")
 async def root():
+    """List available agents with their input/output models."""
+    agents_info = {}
+    for name, cls in AGENTS.items():
+        agents_info[name] = {
+            "input": cls.input_model.model_json_schema() if cls.input_model else "any",
+            "output": cls.output_model.model_json_schema() if cls.output_model else "any",
+        }
     return {
         "service": "agent-service",
-        "agents": list_agents(),
+        "agents": agents_info,
         "docs": "/docs"
     }
 
@@ -51,7 +59,7 @@ async def health():
 # Universal Agent Endpoint
 # =============================================================================
 
-@app.post("/agents/{agent_name}", response_model=AgentResponse)
+@app.post("/agents/{agent_name}")
 async def run_agent(agent_name: str, request: Request):
     """Run any registered agent by name."""
     try:
@@ -60,7 +68,20 @@ async def run_agent(agent_name: str, request: Request):
         raise HTTPException(status_code=404, detail=str(e))
 
     body = await request.json()
-    return await agent.run(body)
+
+    # Validate input if agent has input_model
+    try:
+        validated_input = agent.validate_input(body)
+    except ValidationError as e:
+        return JSONResponse(status_code=422, content={"detail": e.errors()})
+
+    # Run agent
+    result = await agent.run(validated_input)
+
+    # Return as dict if Pydantic model
+    if hasattr(result, "model_dump"):
+        return result.model_dump()
+    return result
 
 
 # =============================================================================

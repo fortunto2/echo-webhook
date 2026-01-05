@@ -1,4 +1,4 @@
-from .models import WebhookPayload, AgentResponse
-from .llm import get_openai_client
+from .models import ErrorResponse
+from .llm import get_openai_client, chat_completion
 
-__all__ = ["WebhookPayload", "AgentResponse", "get_openai_client"]
+__all__ = ["ErrorResponse", "get_openai_client", "chat_completion"]
