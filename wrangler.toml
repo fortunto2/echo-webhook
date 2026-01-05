@@ -2,3 +2,23 @@ name = "echo-webhook"
 main = "src/entry.py"
 compatibility_date = "2025-10-16"
 compatibility_flags = ["python_workers"]
+
+# Secrets (add via: wrangler secret put OPENAI_API_KEY)
+# Access in code: self.env.OPENAI_API_KEY
+
+# === Bindings (uncomment as needed) ===
+
+# KV Namespace - key-value storage
+# [[kv_namespaces]]
+# binding = "CACHE"
+# id = "your-kv-namespace-id"
+
+# D1 Database - SQLite at the edge
+# [[d1_databases]]
+# binding = "DB"
+# database_id = "your-d1-database-id"
+
+# R2 Bucket - object storage
+# [[r2_buckets]]
+# binding = "STORAGE"
+# bucket_name = "your-bucket-name"

@@ -1,5 +1,9 @@
 # Echo Webhook
 
+[![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+
 Simple webhook service that echoes back any JSON payload. Built with **FastAPI + Pydantic** running on **Cloudflare Workers** (Python).
 
 **Live:** https://echo-webhook.nameless-sunset-8f24.workers.dev
@@ -29,6 +33,7 @@ uv run pywrangler deploy
 ## Example
 
 ```bash
+# Simple echo
 curl -X POST https://echo-webhook.nameless-sunset-8f24.workers.dev/webhook \
   -H "Content-Type: application/json" \
   -d '{"hello": "world"}'
@@ -42,6 +47,56 @@ Response:
   "echo": {"hello": "world"}
 }
 ```
+
+### Typed endpoint with validation
+
+```bash
+curl -X POST https://echo-webhook.nameless-sunset-8f24.workers.dev/webhook/typed \
+  -H "Content-Type: application/json" \
+  -d '{"message": "hello", "data": {"foo": "bar"}}'
+```
+
+If payload doesn't match schema, returns 422 with validation errors.
+
+## Extending to SGR Agent
+
+This template is designed as a foundation for building **Schema-Guided Reasoning (SGR)** agents. SGR forces LLMs to reason through predefined Pydantic schemas.
+
+Example extension in `src/entry.py`:
+
+```python
+from pydantic import BaseModel, Field
+from enum import Enum
+
+class ApproachType(str, Enum):
+    direct_answer = "direct_answer"
+    multi_step = "multi_step"
+    clarification_needed = "clarification_needed"
+
+class TaskAnalysis(BaseModel):
+    """Step 1: LLM must fill all fields"""
+    task_understanding: str = Field(description="Restate task in own words")
+    key_entities: list[str] = Field(description="Key concepts involved")
+    approach: ApproachType
+
+class StepReasoning(BaseModel):
+    """Step 2: Forced chain-of-thought"""
+    step_1_gather: str = Field(description="What info is needed?")
+    step_2_analyze: str = Field(description="Analysis of gathered info")
+    step_3_synthesize: str = Field(description="Combine into answer")
+    confidence: float = Field(ge=0, le=1)
+    final_answer: str
+
+@app.post("/agent")
+async def sgr_agent(request: Request):
+    body = await request.json()
+    # Call LLM with TaskAnalysis schema (tool_use)
+    # Then call with StepReasoning schema
+    # Return structured reasoning trace
+    ...
+```
+
+See [Schema-Guided Reasoning](https://abdullin.com/schema-guided-reasoning/) for more on SGR patterns.
 
 ## Why These Choices?
 
@@ -67,7 +122,7 @@ Required for FastAPI + Pydantic to work. This date enables `python_dedicated_sna
 - Pre-compiles heavy Python imports at deploy time
 - Without this, deployment fails with "exceeded CPU limit" error
 
-#### Why not use standard Python hosting?
+#### Comparison with alternatives
 
 | Option | Cold Start | Global Edge | Free Tier |
 |--------|-----------|-------------|-----------|
@@ -78,13 +133,25 @@ Required for FastAPI + Pydantic to work. This date enables `python_dedicated_sna
 
 Cloudflare Workers offer the best combination of edge deployment and fast cold starts for simple webhook services.
 
-### Project Structure
+## Project Structure
 
 ```
 ├── src/entry.py      # FastAPI app + Worker entrypoint
 ├── wrangler.toml     # Cloudflare Worker config
 ├── pyproject.toml    # Python dependencies (uv)
+├── CLAUDE.md         # Instructions for Claude Code
 └── python_modules/   # Bundled deps for Pyodide (auto-generated)
+```
+
+## Adding Secrets
+
+For SGR agent with LLM calls:
+
+```bash
+# Add Anthropic API key
+wrangler secret put ANTHROPIC_API_KEY
+
+# Access in code via self.env.ANTHROPIC_API_KEY
 ```
 
 ## Troubleshooting
@@ -97,6 +164,16 @@ uv run pywrangler deploy
 ```
 
 This clears cached packages and forces fresh Pyodide-compatible installation.
+
+**"Module not found" errors**
+
+Only pure Python packages or those pre-compiled in Pyodide work. Check [Pyodide packages](https://pyodide.org/en/stable/usage/packages-in-pyodide.html).
+
+## Related
+
+- [Cloudflare Python Workers docs](https://developers.cloudflare.com/workers/languages/python/)
+- [Schema-Guided Reasoning (SGR)](https://abdullin.com/schema-guided-reasoning/)
+- [FastAPI on Workers](https://developers.cloudflare.com/workers/languages/python/packages/fastapi/)
 
 ## License
 

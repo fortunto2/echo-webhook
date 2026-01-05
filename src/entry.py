@@ -1,5 +1,7 @@
 """
 Simple Echo Webhook - FastAPI on Cloudflare Workers
+
+OpenAPI docs available at /docs
 """
 
 from workers import WorkerEntrypoint
@@ -7,6 +9,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Any
+import uuid
 import asgi
 
 
@@ -14,7 +17,15 @@ import asgi
 # FastAPI App
 # =============================================================================
 
-app = FastAPI(title="Echo Webhook")
+app = FastAPI(title="Echo Webhook", docs_url="/docs")
+
+
+@app.middleware("http")
+async def add_request_id(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())[:8]
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    return response
 
 
 class WebhookPayload(BaseModel):
