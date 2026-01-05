@@ -11,7 +11,6 @@ if [ -z "$1" ]; then
 fi
 
 WORKER_NAME="$1"
-WORKER_NAME_UNDERSCORE="${WORKER_NAME//-/_}"
 
 echo "Creating new worker: $WORKER_NAME"
 
@@ -25,22 +24,11 @@ sed -i '' "s/description = \".*\"/description = \"$WORKER_NAME - Cloudflare Pyth
 # Update FastAPI app title
 sed -i '' "s/title=\"Echo Webhook\"/title=\"$WORKER_NAME\"/" src/entry.py
 
-# Update terraform
-mv terraform/workers/echo-webhook "terraform/workers/$WORKER_NAME"
-sed -i '' "s/worker_name = \"echo-webhook\"/worker_name = \"$WORKER_NAME\"/" "terraform/workers/$WORKER_NAME/main.tf"
-sed -i '' "s/module \"echo_webhook\"/module \"$WORKER_NAME_UNDERSCORE\"/" terraform/main.tf
-sed -i '' "s|./workers/echo-webhook|./workers/$WORKER_NAME|" terraform/main.tf
-sed -i '' "s/echo_webhook_url/${WORKER_NAME_UNDERSCORE}_url/" terraform/outputs.tf
-sed -i '' "s/module.echo_webhook/module.$WORKER_NAME_UNDERSCORE/" terraform/outputs.tf
-
 echo ""
-echo "✅ Done! Worker renamed to: $WORKER_NAME"
+echo "Done! Worker renamed to: $WORKER_NAME"
 echo ""
 echo "Next steps:"
-echo "  1. Update README.md with your project description"
-echo "  2. cp terraform/terraform.tfvars.example terraform/terraform.tfvars"
-echo "  3. Add your API token to terraform/terraform.tfvars"
-echo "  4. uv sync"
-echo "  5. uv run pywrangler dev   # test locally"
-echo "  6. uv run pywrangler deploy"
+echo "  1. uv sync"
+echo "  2. uv run pywrangler dev   # test locally"
+echo "  3. uv run pywrangler deploy"
 echo ""
