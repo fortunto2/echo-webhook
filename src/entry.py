@@ -1,23 +1,24 @@
 """
-Simple Echo Webhook - FastAPI on Cloudflare Workers
+Cloudflare Python Worker - Agent Service
 
 OpenAPI docs available at /docs
 """
 
 from workers import WorkerEntrypoint
 from fastapi import FastAPI, Request
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Any
 import uuid
 import asgi
+
+from core.models import WebhookPayload, AgentResponse
+from agents import EchoAgent
 
 
 # =============================================================================
 # FastAPI App
 # =============================================================================
 
-app = FastAPI(title="Echo Webhook", docs_url="/docs")
+app = FastAPI(title="Agent Service", docs_url="/docs")
 
 
 @app.middleware("http")
@@ -28,15 +29,17 @@ async def add_request_id(request: Request, call_next):
     return response
 
 
-class WebhookPayload(BaseModel):
-    """Incoming webhook payload"""
-    message: str | None = None
-    data: dict[str, Any] | None = None
-
+# =============================================================================
+# Health & Info
+# =============================================================================
 
 @app.get("/")
 async def root():
-    return {"service": "echo-webhook", "status": "running"}
+    return {
+        "service": "agent-service",
+        "agents": ["echo"],
+        "docs": "/docs"
+    }
 
 
 @app.get("/health")
@@ -44,27 +47,31 @@ async def health():
     return {"status": "ok", "timestamp": datetime.utcnow().isoformat()}
 
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    """Echo back whatever is sent"""
+# =============================================================================
+# Agents
+# =============================================================================
+
+@app.post("/agents/echo", response_model=AgentResponse)
+async def agent_echo(request: Request):
+    """Echo agent - returns whatever is sent."""
     body = await request.json()
-    
-    return {
-        "status": "ok",
-        "received_at": datetime.utcnow().isoformat(),
-        "echo": body
-    }
+    agent = EchoAgent()
+    return await agent.run(body)
 
 
-@app.post("/webhook/typed")
+@app.post("/webhook", response_model=AgentResponse)
+async def webhook(request: Request):
+    """Legacy endpoint - redirects to echo agent."""
+    body = await request.json()
+    agent = EchoAgent()
+    return await agent.run(body)
+
+
+@app.post("/webhook/typed", response_model=AgentResponse)
 async def webhook_typed(payload: WebhookPayload):
-    """Echo with Pydantic validation"""
-    
-    return {
-        "status": "ok",
-        "received_at": datetime.utcnow().isoformat(),
-        "echo": payload.model_dump()
-    }
+    """Legacy endpoint with validation - redirects to echo agent."""
+    agent = EchoAgent()
+    return await agent.run(payload.model_dump())
 
 
 # =============================================================================
