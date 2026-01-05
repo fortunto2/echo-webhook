@@ -27,5 +27,10 @@ terraform/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
 terraform/*.tfvars
+!terraform/*.tfvars.example
 terraform/.terraform.lock.hcl
 terraform/crash.log
+
+# Environment
+.env
+.env.local

@@ -1,12 +1,34 @@
-# Echo Webhook
+# Cloudflare Python Worker Template
 
 [![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers-F38020?logo=cloudflare)](https://workers.cloudflare.com/)
 [![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Terraform](https://img.shields.io/badge/Terraform-7B42BC?logo=terraform&logoColor=white)](https://terraform.io)
 
-Simple webhook service that echoes back any JSON payload. Built with **FastAPI + Pydantic** running on **Cloudflare Workers** (Python).
+Template for building **FastAPI + Pydantic** services on **Cloudflare Workers** with **Terraform** infrastructure management.
 
-**Live:** https://echo-webhook.nameless-sunset-8f24.workers.dev
+**Live example:** https://echo-webhook.nameless-sunset-8f24.workers.dev
+
+## Use as Template
+
+```bash
+# Clone and rename
+git clone https://github.com/fortunto2/echo-webhook.git my-worker
+cd my-worker
+
+# Run setup script to rename everything
+./setup-new-worker.sh my-worker
+
+# Setup terraform credentials
+cp terraform/terraform.tfvars.example terraform/terraform.tfvars
+# Edit terraform/terraform.tfvars with your API token
+
+# Deploy
+uv sync
+uv run pywrangler deploy
+```
+
+Or use GitHub's "Use this template" button.
 
 ## Endpoints
 
@@ -136,12 +158,43 @@ Cloudflare Workers offer the best combination of edge deployment and fast cold s
 ## Project Structure
 
 ```
-├── src/entry.py      # FastAPI app + Worker entrypoint
-├── wrangler.toml     # Cloudflare Worker config
-├── pyproject.toml    # Python dependencies (uv)
-├── CLAUDE.md         # Instructions for Claude Code
-└── python_modules/   # Bundled deps for Pyodide (auto-generated)
+├── src/entry.py              # FastAPI app + Worker entrypoint
+├── wrangler.toml             # Cloudflare Worker config
+├── pyproject.toml            # Python dependencies (uv)
+├── setup-new-worker.sh       # Template setup script
+├── terraform/
+│   ├── main.tf               # Root module, provider
+│   ├── variables.tf          # Input variables
+│   ├── outputs.tf            # Output URLs
+│   ├── modules/
+│   │   └── python-worker/    # Reusable infra module (KV, D1, R2)
+│   └── workers/
+│       └── echo-webhook/     # Per-worker config
+├── CLAUDE.md                 # Instructions for Claude Code
+└── python_modules/           # Bundled deps (auto-generated)
 ```
+
+## Terraform Infrastructure
+
+Manage KV, D1, R2, routes across multiple workers:
+
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
+
+Add a new worker's infrastructure:
+```hcl
+# terraform/main.tf
+module "my_new_worker" {
+  source     = "./workers/my-new-worker"
+  account_id = var.cloudflare_account_id
+}
+```
+
+See [terraform/README.md](terraform/README.md) for details.
 
 ## Adding Secrets
 
