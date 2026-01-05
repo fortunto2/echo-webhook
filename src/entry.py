@@ -10,7 +10,7 @@ from datetime import datetime
 import uuid
 import asgi
 
-from core.models import WebhookPayload, AgentResponse
+from core.models import AgentResponse
 from agents import EchoAgent
 
 
@@ -57,21 +57,6 @@ async def agent_echo(request: Request):
     body = await request.json()
     agent = EchoAgent()
     return await agent.run(body)
-
-
-@app.post("/webhook", response_model=AgentResponse)
-async def webhook(request: Request):
-    """Legacy endpoint - redirects to echo agent."""
-    body = await request.json()
-    agent = EchoAgent()
-    return await agent.run(body)
-
-
-@app.post("/webhook/typed", response_model=AgentResponse)
-async def webhook_typed(payload: WebhookPayload):
-    """Legacy endpoint with validation - redirects to echo agent."""
-    agent = EchoAgent()
-    return await agent.run(payload.model_dump())
 
 
 # =============================================================================
