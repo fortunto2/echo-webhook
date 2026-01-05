@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars and fill in values
+# terraform.tfvars is gitignored
+
+cloudflare_api_token  = "your-api-token-here"
+cloudflare_account_id = "your-account-id-here"
+
+# Optional: for custom domain routing
+# cloudflare_zone_id = "your-zone-id-here"
