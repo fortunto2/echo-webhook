@@ -5,13 +5,11 @@ OpenAPI docs available at /docs
 """
 
 from workers import WorkerEntrypoint
-from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from fastapi import FastAPI, Request
 from datetime import datetime
 import asgi
 
-from agents import AGENTS, get_agent, list_agents
+from agents import AGENTS, list_agents
 
 
 # =============================================================================
@@ -47,32 +45,41 @@ async def health():
 
 
 # =============================================================================
-# Universal Agent Endpoint
+# Agent Routes (auto-generated with proper schemas)
 # =============================================================================
 
-@app.post("/agents/{agent_name}")
-async def run_agent(agent_name: str, request: Request):
-    """Run any registered agent by name."""
-    try:
-        agent = get_agent(agent_name)
-    except KeyError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+def create_agent_route(agent_cls):
+    """Create a route handler for an agent with proper type hints."""
+    input_model = agent_cls.input_model
+    output_model = agent_cls.output_model
 
-    body = await request.json()
+    if input_model and output_model:
+        async def handler(payload: input_model) -> output_model:
+            agent = agent_cls()
+            return await agent.run(payload)
+    elif input_model:
+        async def handler(payload: input_model):
+            agent = agent_cls()
+            return await agent.run(payload)
+    else:
+        async def handler(request: Request):
+            agent = agent_cls()
+            body = await request.json()
+            return await agent.run(body)
 
-    # Validate input if agent has input_model
-    try:
-        validated_input = agent.validate_input(body)
-    except ValidationError as e:
-        return JSONResponse(status_code=422, content={"detail": e.errors()})
+    handler.__doc__ = agent_cls.__doc__
+    return handler
 
-    # Run agent
-    result = await agent.run(validated_input)
 
-    # Return as dict if Pydantic model
-    if hasattr(result, "model_dump"):
-        return result.model_dump()
-    return result
+# Register routes for all agents
+for name, agent_cls in AGENTS.items():
+    handler = create_agent_route(agent_cls)
+    app.post(
+        f"/agents/{name}",
+        response_model=agent_cls.output_model,
+        name=f"agent_{name}",
+        tags=["agents"]
+    )(handler)
 
 
 # =============================================================================
