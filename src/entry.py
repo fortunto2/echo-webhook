@@ -9,7 +9,6 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from datetime import datetime
-import uuid
 import asgi
 
 from agents import AGENTS, get_agent, list_agents
@@ -20,14 +19,6 @@ from agents import AGENTS, get_agent, list_agents
 # =============================================================================
 
 app = FastAPI(title="Agent Service", docs_url="/docs")
-
-
-@app.middleware("http")
-async def add_request_id(request: Request, call_next):
-    request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())[:8]
-    response = await call_next(request)
-    response.headers["X-Request-ID"] = request_id
-    return response
 
 
 # =============================================================================
