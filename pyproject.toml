@@ -1,0 +1,15 @@
+[project]
+name = "echo-webhook"
+version = "0.1.0"
+description = "Simple Echo Webhook on Cloudflare Workers"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi",
+    "pydantic"
+]
+
+[dependency-groups]
+dev = [
+    "workers-py",
+    "workers-runtime-sdk"
+]

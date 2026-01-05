@@ -1,0 +1,23 @@
+# Virtual environments
+.venv/
+.venv-workers/
+
+# Dependencies (auto-generated)
+python_modules/
+node_modules/
+
+# Cloudflare
+.wrangler/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
