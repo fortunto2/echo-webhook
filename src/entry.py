@@ -1,7 +1,7 @@
 """
 Cloudflare Python Worker - Agent Service
 
-OpenAPI docs available at /docs
+OpenAPI docs: /docs
 """
 
 from workers import WorkerEntrypoint
